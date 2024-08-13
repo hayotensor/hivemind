@@ -9,7 +9,7 @@ from hivemind.dht.routing import DHTID, BinaryDHTValue, RoutingTable, Subkey
 from hivemind.dht.storage import DHTLocalStorage, DictionaryDHTValue
 from hivemind.p2p import P2P, P2PContext, PeerID, ServicerBase
 from hivemind.proto import dht_pb2
-from hivemind.utils import MSGPackSerializer, get_logger
+from hivemind.utils import MSGPackSerializer, get_logger, ProofOfStake
 from hivemind.utils.auth import AuthorizerBase, AuthRole, AuthRPCWrapper
 from hivemind.utils.timed_storage import (
     MAX_DHT_TIME_DISCREPANCY_SECONDS,
@@ -69,6 +69,7 @@ class DHTProtocol(ServicerBase):
         self.client_mode = client_mode
         self.record_validator = record_validator
         self.authorizer = authorizer
+        self.pos = ProofOfStake()
 
         if not self.client_mode:
             await self.add_p2p_handlers(self.p2p, AuthRPCWrapper(self, AuthRole.SERVICER, self.authorizer))
@@ -377,34 +378,34 @@ class DHTProtocol(ServicerBase):
           For incoming requests, this should always be True
         """
         node_id = node_id if node_id is not None else self.routing_table.get(peer_id=peer_id)
-        if responded and self._proof_of_stake(peer_id):  # incoming request or outgoing request with response
-            if node_id not in self.routing_table:
-                # we just met a new node, maybe we know some values that it *should* store
-                data_to_send: List[Tuple[DHTID, BinaryDHTValue, DHTExpiration]] = []
-                for key, item in list(self.storage.items()):
-                    neighbors = self.routing_table.get_nearest_neighbors(key, self.num_replicas, exclude=self.node_id)
-                    if neighbors:
-                        nearest_distance = neighbors[0][0].xor_distance(key)
-                        farthest_distance = neighbors[-1][0].xor_distance(key)
-                        new_node_should_store = node_id.xor_distance(key) < farthest_distance
-                        this_node_is_responsible = self.node_id.xor_distance(key) < nearest_distance
-                    if not neighbors or (new_node_should_store and this_node_is_responsible):
-                        data_to_send.append((key, item.value, item.expiration_time))
-                if data_to_send:
-                    asyncio.create_task(self.call_store(peer_id, *zip(*data_to_send), in_cache=False))
+        if responded:  # incoming request or outgoing request with response
 
-            maybe_node_to_ping = self.routing_table.add_or_update_node(node_id, peer_id)
-            if maybe_node_to_ping is not None:
-                # we couldn't add new node because the table was full. Check if existing peers are alive (Section 2.2)
-                # ping one least-recently updated peer: if it won't respond, remove it from the table, else update it
-                asyncio.create_task(self.call_ping(maybe_node_to_ping[1]))  # [1]-th element is that node's peer_id
+            # validate proof of stake before adding to routing table
+            if self.pos.check_proof_of_stake(peer_id):
+                if node_id not in self.routing_table:
+                    # we just met a new node, maybe we know some values that it *should* store
+                    data_to_send: List[Tuple[DHTID, BinaryDHTValue, DHTExpiration]] = []
+                    for key, item in list(self.storage.items()):
+                        neighbors = self.routing_table.get_nearest_neighbors(key, self.num_replicas, exclude=self.node_id)
+                        if neighbors:
+                            nearest_distance = neighbors[0][0].xor_distance(key)
+                            farthest_distance = neighbors[-1][0].xor_distance(key)
+                            new_node_should_store = node_id.xor_distance(key) < farthest_distance
+                            this_node_is_responsible = self.node_id.xor_distance(key) < nearest_distance
+                        if not neighbors or (new_node_should_store and this_node_is_responsible):
+                            data_to_send.append((key, item.value, item.expiration_time))
+                    if data_to_send:
+                        asyncio.create_task(self.call_store(peer_id, *zip(*data_to_send), in_cache=False))
+
+                maybe_node_to_ping = self.routing_table.add_or_update_node(node_id, peer_id)
+                if maybe_node_to_ping is not None:
+                    # we couldn't add new node because the table was full. Check if existing peers are alive (Section 2.2)
+                    # ping one least-recently updated peer: if it won't respond, remove it from the table, else update it
+                    asyncio.create_task(self.call_ping(maybe_node_to_ping[1]))  # [1]-th element is that node's peer_id
 
         else:  # we sent outgoing request and peer did not respond
             if node_id is not None and node_id in self.routing_table:
                 del self.routing_table[node_id]
-
-    def _proof_of_stake(peer_id: PeerID) -> bool:
-        return True
 
     def _validate_record(
         self, key_bytes: bytes, subkey_bytes: bytes, value_bytes: bytes, expiration_time: float
