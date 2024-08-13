@@ -377,7 +377,7 @@ class DHTProtocol(ServicerBase):
           For incoming requests, this should always be True
         """
         node_id = node_id if node_id is not None else self.routing_table.get(peer_id=peer_id)
-        if responded:  # incoming request or outgoing request with response
+        if responded and self._proof_of_stake(peer_id):  # incoming request or outgoing request with response
             if node_id not in self.routing_table:
                 # we just met a new node, maybe we know some values that it *should* store
                 data_to_send: List[Tuple[DHTID, BinaryDHTValue, DHTExpiration]] = []
@@ -402,6 +402,9 @@ class DHTProtocol(ServicerBase):
         else:  # we sent outgoing request and peer did not respond
             if node_id is not None and node_id in self.routing_table:
                 del self.routing_table[node_id]
+
+    def _proof_of_stake(peer_id: PeerID) -> bool:
+        return True
 
     def _validate_record(
         self, key_bytes: bytes, subkey_bytes: bytes, value_bytes: bytes, expiration_time: float
