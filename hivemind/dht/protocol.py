@@ -379,9 +379,9 @@ class DHTProtocol(ServicerBase):
         """
         node_id = node_id if node_id is not None else self.routing_table.get(peer_id=peer_id)
         if responded:  # incoming request or outgoing request with response
-
             # validate proof of stake before adding to routing table
-            if self.pos.check_proof_of_stake(peer_id):
+            pos = self.pos.check_proof_of_stake(peer_id)
+            if pos:
                 if node_id not in self.routing_table:
                     # we just met a new node, maybe we know some values that it *should* store
                     data_to_send: List[Tuple[DHTID, BinaryDHTValue, DHTExpiration]] = []
