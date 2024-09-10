@@ -130,9 +130,29 @@ class Ed25519PrivateKey(PrivateKey):
         return Ed25519PublicKey(self._private_key.public_key())
 
     def to_bytes(self) -> bytes:
+        # return self._private_key.private_bytes(
+        #     encoding=serialization.Encoding.DER,
+        #     format=serialization.PrivateFormat.TraditionalOpenSSL,
+        #     encryption_algorithm=serialization.NoEncryption(),
+        # )
+        # return self._private_key.private_bytes(
+        #     encoding=serialization.Encoding.PEM,
+        #     format=serialization.PrivateFormat.OpenSSH,
+        #     encryption_algorithm=serialization.NoEncryption(),
+        # )
+        # return self._private_key.private_bytes(
+        #     encoding=serialization.Encoding.PEM,
+        #     format=serialization.PrivateFormat.TraditionalOpenSSL,
+        #     encryption_algorithm=serialization.NoEncryption(),
+        # )
+        # return self._private_key.private_bytes(
+        #     encoding=serialization.Encoding.PEM,
+        #     format=serialization.PrivateFormat.PKCS12,
+        #     encryption_algorithm=serialization.NoEncryption(),
+        # )
         return self._private_key.private_bytes(
-            encoding=serialization.Encoding.DER,
-            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PrivateFormat.Raw,
             encryption_algorithm=serialization.NoEncryption(),
         )
 
@@ -144,7 +164,9 @@ class Ed25519PrivateKey(PrivateKey):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self._private_key = serialization.load_der_private_key(self._private_key, password=None)
+        # self._private_key = serialization.load_der_private_key(self._private_key, password=None)
+        # self._private_key = serialization.load_pem_private_key(self._private_key, password=None)
+        self._private_key = ed25519.Ed25519PrivateKey.from_private_bytes(self._private_key)
 
 
 class Ed25519PublicKey(PublicKey):
