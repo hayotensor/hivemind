@@ -9,9 +9,9 @@ import numpy as np
 from pydantic.v1 import BaseModel, StrictBool, StrictFloat, confloat, conint
 
 from hivemind.dht import DHT
-from hivemind.dht.schema import BytesWithPublicKey, RSASignatureValidator, SchemaValidator
+from hivemind.dht.schema import BytesWithPublicKey, Ed25519SignatureValidator, SchemaValidator
 from hivemind.utils import DHTExpiration, ValueWithExpiration, enter_asynchronously, get_dht_time, get_logger
-from hivemind.utils.crypto import RSAPrivateKey
+from hivemind.utils.crypto import Ed25519PrivateKey
 from hivemind.utils.performance_ema import PerformanceEMA
 
 logger = get_logger(__name__)
@@ -90,7 +90,7 @@ class ProgressTracker(threading.Thread):
         performance_ema_alpha: float = 0.1,
         metadata_expiration: float = 60.0,
         status_loglevel: int = logging.DEBUG,
-        private_key: Optional[RSAPrivateKey] = None,
+        private_key: Optional[Ed25519PrivateKey] = None,
         daemon: bool = True,
         start: bool,
     ):
@@ -105,7 +105,7 @@ class ProgressTracker(threading.Thread):
         self.performance_ema = PerformanceEMA(alpha=performance_ema_alpha)
         self.metadata_expiration = metadata_expiration
 
-        signature_validator = RSASignatureValidator(private_key)
+        signature_validator = Ed25519SignatureValidator(private_key)
         self._local_public_key = signature_validator.local_public_key
         dht.add_validators([SchemaValidator(TrainingProgressSchema, prefix=prefix), signature_validator])
 

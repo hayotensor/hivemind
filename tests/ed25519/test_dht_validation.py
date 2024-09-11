@@ -46,7 +46,7 @@ def test_composite_validator(validators_for_app):
     )
 
     signed_record = dataclasses.replace(record, value=validator.sign_value(record))
-    # Expect only one signature since two RSASignatureValidatos have been merged
+    # Expect only one signature since two Ed25519SignatureValidators have been merged
     assert signed_record.value.count(b"[signature:") == 1
     # Expect successful validation since the second SchemaValidator has been merged to the first
     assert validator.validate(signed_record)

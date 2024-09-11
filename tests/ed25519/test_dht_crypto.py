@@ -60,10 +60,7 @@ def test_validator_instance_is_picklable():
     # Needs to be picklable because the validator instance may be sent between processes
 
     original_validator = Ed25519SignatureValidator()
-    
-    print("original_validator: ", original_validator)
     unpickled_validator = pickle.loads(pickle.dumps(original_validator))
-    print("unpickled_validator: ", unpickled_validator)
 
     # To check that the private key was pickled and unpickled correctly, we sign a record
     # with the original public key using the unpickled validator and then validate the signature
@@ -74,9 +71,7 @@ def test_validator_instance_is_picklable():
         value=b"value",
         expiration_time=get_dht_time() + 10,
     )
-    print("record: ", record)
     signed_record = dataclasses.replace(record, value=unpickled_validator.sign_value(record))
-    print("signed_record: ", signed_record)
 
     assert b"[signature:" in signed_record.value
     assert original_validator.validate(signed_record)

@@ -130,26 +130,6 @@ class Ed25519PrivateKey(PrivateKey):
         return Ed25519PublicKey(self._private_key.public_key())
 
     def to_bytes(self) -> bytes:
-        # return self._private_key.private_bytes(
-        #     encoding=serialization.Encoding.DER,
-        #     format=serialization.PrivateFormat.TraditionalOpenSSL,
-        #     encryption_algorithm=serialization.NoEncryption(),
-        # )
-        # return self._private_key.private_bytes(
-        #     encoding=serialization.Encoding.PEM,
-        #     format=serialization.PrivateFormat.OpenSSH,
-        #     encryption_algorithm=serialization.NoEncryption(),
-        # )
-        # return self._private_key.private_bytes(
-        #     encoding=serialization.Encoding.PEM,
-        #     format=serialization.PrivateFormat.TraditionalOpenSSL,
-        #     encryption_algorithm=serialization.NoEncryption(),
-        # )
-        # return self._private_key.private_bytes(
-        #     encoding=serialization.Encoding.PEM,
-        #     format=serialization.PrivateFormat.PKCS12,
-        #     encryption_algorithm=serialization.NoEncryption(),
-        # )
         return self._private_key.private_bytes(
             encoding=serialization.Encoding.Raw,
             format=serialization.PrivateFormat.Raw,

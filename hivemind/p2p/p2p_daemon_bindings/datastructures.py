@@ -82,7 +82,7 @@ class PeerID:
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
         encoded_public_key = crypto_pb2.PublicKey(
-            key_type=crypto_pb2.RSA,
+            key_type=crypto_pb2.Ed25519,
             data=encoded_public_key,
         ).SerializeToString()
 
